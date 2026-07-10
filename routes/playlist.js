@@ -22,7 +22,6 @@ router.post("/save", async (req, res) => {
       });
     }
 
-    // Buscar si ya existe
     const { data: existing, error: searchError } = await supabase
       .from("playlists")
       .select("*")
@@ -99,6 +98,34 @@ router.get("/:deviceCode", async (req, res) => {
     res.json({
       success: true,
       playlist: data,
+    });
+
+  } catch (e) {
+    console.error(e);
+
+    res.status(500).json({
+      success: false,
+      message: e.message,
+    });
+  }
+});
+
+// ======================================
+// Eliminar playlist
+// ======================================
+router.delete("/:deviceCode", async (req, res) => {
+  try {
+    const { deviceCode } = req.params;
+
+    const { error } = await supabase
+      .from("playlists")
+      .delete()
+      .eq("device_code", deviceCode);
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
     });
 
   } catch (e) {
