@@ -46,10 +46,20 @@ router.post("/register", async (req, res) => {
 
     console.log("🆕 Registrando dispositivo...");
 
+    const now = new Date();
+
+    const trialEnd = new Date(
+      now.getTime() + 7 * 24 * 60 * 60 * 1000,
+    );
+
     const { error: insertError } = await supabase
       .from("devices")
       .insert({
         device_code: deviceCode,
+        subscription_type: "trial",
+        subscription_start: now.toISOString(),
+        subscription_end: trialEnd.toISOString(),
+        last_seen: now.toISOString(),
       });
 
     if (insertError) throw insertError;
