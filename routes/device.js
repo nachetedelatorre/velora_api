@@ -160,4 +160,52 @@ router.get("/subscription/:deviceCode", async (req, res) => {
   }
 });
 
+// =========================
+// Activar licencia 1 año
+// =========================
+router.post("/activate", async (req, res) => {
+  try {
+    const { deviceCode } = req.body;
+
+    if (!deviceCode) {
+      return res.status(400).json({
+        success: false,
+        message: "Falta el código del dispositivo",
+      });
+    }
+
+    const now = new Date();
+
+    const end = new Date(now);
+    end.setFullYear(end.getFullYear() + 1);
+
+    const { data, error } = await supabase
+      .from("devices")
+      .update({
+        subscription_type: "yearly",
+        subscription_start: now.toISOString(),
+        subscription_end: end.toISOString(),
+        last_seen: now.toISOString(),
+      })
+      .eq("device_code", deviceCode)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.json({
+      success: true,
+      device: data,
+    });
+
+  } catch (e) {
+    console.error("❌ ERROR ACTIVATE:", e);
+
+    return res.status(500).json({
+      success: false,
+      message: e.message,
+    });
+  }
+});
+
 module.exports = router;
