@@ -7,6 +7,7 @@ const supabase = require("./services/supabase");
 const deviceRoutes = require("./routes/device");
 const playlistRoutes = require("./routes/playlist");
 const authRoutes = require("./routes/auth");
+const resellerRoutes = require("./routes/reseller");
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.get("/test-supabase", async (req, res) => {
 app.use("/auth", authRoutes);
 app.use("/device", deviceRoutes);
 app.use("/playlist", playlistRoutes);
+app.use("/reseller", resellerRoutes);
 
 const PORT = process.env.PORT || 3000;
 
