@@ -100,15 +100,11 @@ router.post("/check", async (req, res) => {
     if (error) throw error;
 
     if (!data) {
-      console.log("❌ No encontrado");
-
       return res.json({
         success: true,
         activated: false,
       });
     }
-
-    console.log("✅ Dispositivo encontrado");
 
     return res.json({
       success: true,
@@ -117,6 +113,45 @@ router.post("/check", async (req, res) => {
 
   } catch (e) {
     console.error("❌ ERROR CHECK:", e);
+
+    return res.status(500).json({
+      success: false,
+      message: e.message,
+    });
+  }
+});
+
+// =========================
+// Obtener suscripción
+// =========================
+router.get("/subscription/:deviceCode", async (req, res) => {
+  try {
+    const { deviceCode } = req.params;
+
+    const { data, error } = await supabase
+      .from("devices")
+      .select(
+        "subscription_type, subscription_start, subscription_end"
+      )
+      .eq("device_code", deviceCode)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        message: "Dispositivo no encontrado",
+      });
+    }
+
+    return res.json({
+      success: true,
+      subscription: data,
+    });
+
+  } catch (e) {
+    console.error("❌ ERROR SUBSCRIPTION:", e);
 
     return res.status(500).json({
       success: false,
