@@ -12,6 +12,7 @@ router.post("/create", async (req, res) => {
       username,
       password,
       credits,
+      companyName,
     } = req.body;
 
     if (!username || !password) {
@@ -21,7 +22,7 @@ router.post("/create", async (req, res) => {
       });
     }
 
-    // Comprobar si ya existe
+    // ¿Existe ya el usuario?
     const { data: existing } = await supabase
       .from("users")
       .select("id")
@@ -35,22 +36,38 @@ router.post("/create", async (req, res) => {
       });
     }
 
-    const { data, error } = await supabase
+    // Crear usuario
+    const { data: user, error: userError } = await supabase
       .from("users")
       .insert({
         username,
         password,
         role: "reseller",
-        credits: credits ?? 0,
       })
       .select()
       .single();
 
-    if (error) throw error;
+    if (userError) throw userError;
+
+    // Crear perfil de revendedor
+    const { data: reseller, error: resellerError } =
+      await supabase
+        .from("resellers")
+        .insert({
+          user_id: user.id,
+          company_name: companyName ?? username,
+          credits: credits ?? 0,
+          active: true,
+        })
+        .select()
+        .single();
+
+    if (resellerError) throw resellerError;
 
     return res.json({
       success: true,
-      reseller: data,
+      user,
+      reseller,
     });
 
   } catch (e) {
@@ -69,9 +86,13 @@ router.post("/create", async (req, res) => {
 router.get("/all", async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("role", "reseller")
+      .from("resellers")
+      .select(`
+        *,
+        users (
+          username
+        )
+      `)
       .order("created_at", {
         ascending: false,
       });
