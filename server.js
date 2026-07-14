@@ -6,6 +6,7 @@ const supabase = require("./services/supabase");
 
 const deviceRoutes = require("./routes/device");
 const playlistRoutes = require("./routes/playlist");
+const authRoutes = require("./routes/auth");
 
 const app = express();
 
@@ -39,7 +40,11 @@ app.get("/test-supabase", async (req, res) => {
   }
 });
 
+// =========================
 // Rutas
+// =========================
+
+app.use("/auth", authRoutes);
 app.use("/device", deviceRoutes);
 app.use("/playlist", playlistRoutes);
 
