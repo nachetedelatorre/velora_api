@@ -91,6 +91,13 @@ router.post("/check", async (req, res) => {
 
     console.log("🔍 CHECK:", deviceCode);
 
+    if (!deviceCode) {
+      return res.status(400).json({
+        success: false,
+        message: "Falta el código del dispositivo",
+      });
+    }
+
     const { data, error } = await supabase
       .from("devices")
       .select("*")
@@ -103,12 +110,31 @@ router.post("/check", async (req, res) => {
       return res.json({
         success: true,
         activated: false,
+        exists: false,
+        reason: "not_registered",
       });
     }
 
+    const now = new Date();
+    const end = new Date(data.subscription_end);
+
+    const active = end > now;
+
+    await supabase
+      .from("devices")
+      .update({
+        last_seen: now.toISOString(),
+      })
+      .eq("device_code", deviceCode);
+
     return res.json({
       success: true,
-      activated: true,
+      exists: true,
+      activated: active,
+      expired: !active,
+      subscriptionType: data.subscription_type,
+      subscriptionStart: data.subscription_start,
+      subscriptionEnd: data.subscription_end,
     });
 
   } catch (e) {
