@@ -58,7 +58,7 @@ router.post("/save", async (req, res) => {
 
     if (insertError) throw insertError;
 
-    res.json({
+    return res.json({
       success: true,
       updated: false,
     });
@@ -66,7 +66,7 @@ router.post("/save", async (req, res) => {
   } catch (e) {
     console.error(e);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: e.message,
     });
@@ -80,6 +80,34 @@ router.get("/:deviceCode", async (req, res) => {
   try {
     const { deviceCode } = req.params;
 
+    // Comprobar licencia
+    const { data: device, error: deviceError } = await supabase
+      .from("devices")
+      .select("subscription_end")
+      .eq("device_code", deviceCode)
+      .maybeSingle();
+
+    if (deviceError) throw deviceError;
+
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        message: "Dispositivo no encontrado",
+      });
+    }
+
+    const now = new Date();
+    const end = new Date(device.subscription_end);
+
+    if (end <= now) {
+      return res.status(403).json({
+        success: false,
+        message: "Licencia caducada",
+        expired: true,
+      });
+    }
+
+    // Obtener playlist
     const { data, error } = await supabase
       .from("playlists")
       .select("*")
@@ -95,7 +123,7 @@ router.get("/:deviceCode", async (req, res) => {
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       playlist: data,
     });
@@ -103,7 +131,7 @@ router.get("/:deviceCode", async (req, res) => {
   } catch (e) {
     console.error(e);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: e.message,
     });
@@ -124,14 +152,14 @@ router.delete("/:deviceCode", async (req, res) => {
 
     if (error) throw error;
 
-    res.json({
+    return res.json({
       success: true,
     });
 
   } catch (e) {
     console.error(e);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: e.message,
     });
