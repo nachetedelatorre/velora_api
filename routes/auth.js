@@ -17,7 +17,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const { data, error } = await supabase
+    const { data: user, error } = await supabase
       .from("users")
       .select("*")
       .eq("username", username)
@@ -25,27 +25,48 @@ router.post("/login", async (req, res) => {
 
     if (error) throw error;
 
-    if (!data) {
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: "Usuario incorrecto",
       });
     }
 
-    if (data.password !== password) {
+    if (user.password !== password) {
       return res.status(401).json({
         success: false,
         message: "Contraseña incorrecta",
       });
     }
 
+    let resellerId = null;
+    let credits = 0;
+
+    // Si es revendedor obtenemos sus datos
+    if (user.role === "reseller") {
+      const { data: reseller, error: resellerError } =
+        await supabase
+          .from("resellers")
+          .select("id, credits")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+      if (resellerError) throw resellerError;
+
+      if (reseller) {
+        resellerId = reseller.id;
+        credits = reseller.credits;
+      }
+    }
+
     return res.json({
       success: true,
       user: {
-        id: data.id,
-        username: data.username,
-        role: data.role,
-        credits: data.credits,
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        reseller_id: resellerId,
+        credits: credits,
       },
     });
 
