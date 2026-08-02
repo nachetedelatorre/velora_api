@@ -195,4 +195,62 @@ router.post("/add-credits", async (req, res) => {
   }
 });
 
+// =========================
+// Eliminar revendedor
+// =========================
+router.post("/delete", async (req, res) => {
+  try {
+    const { resellerId } = req.body;
+
+    if (!resellerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Falta el ID del revendedor",
+      });
+    }
+
+    // Obtener el user_id asociado
+    const { data: reseller, error: resellerError } =
+      await supabase
+        .from("resellers")
+        .select("user_id")
+        .eq("id", resellerId)
+        .single();
+
+    if (resellerError) throw resellerError;
+
+    // Eliminar revendedor
+    const { error: deleteResellerError } =
+      await supabase
+        .from("resellers")
+        .delete()
+        .eq("id", resellerId);
+
+    if (deleteResellerError) throw deleteResellerError;
+
+    // Eliminar usuario
+    const { error: deleteUserError } =
+      await supabase
+        .from("users")
+        .delete()
+        .eq("id", reseller.user_id);
+
+    if (deleteUserError) throw deleteUserError;
+
+    return res.json({
+      success: true,
+      message: "Revendedor eliminado correctamente",
+    });
+
+  } catch (e) {
+    console.error("DELETE RESELLER ERROR");
+    console.error(e);
+
+    return res.status(500).json({
+      success: false,
+      message: e.message,
+    });
+  }
+});
+
 module.exports = router;
