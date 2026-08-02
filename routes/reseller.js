@@ -15,6 +15,9 @@ router.post("/create", async (req, res) => {
       companyName,
     } = req.body;
 
+    console.log("========== CREAR REVENDEDOR ==========");
+    console.log(req.body);
+
     if (!username || !password) {
       return res.status(400).json({
         success: false,
@@ -23,11 +26,15 @@ router.post("/create", async (req, res) => {
     }
 
     // ¿Existe ya el usuario?
-    const { data: existing } = await supabase
-      .from("users")
-      .select("id")
-      .eq("username", username)
-      .maybeSingle();
+    const { data: existing, error: existingError } =
+      await supabase
+        .from("users")
+        .select("id")
+        .eq("username", username)
+        .maybeSingle();
+
+    console.log("EXISTING:", existing);
+    console.log("EXISTING ERROR:", existingError);
 
     if (existing) {
       return res.status(400).json({
@@ -37,19 +44,26 @@ router.post("/create", async (req, res) => {
     }
 
     // Crear usuario
-    const { data: user, error: userError } = await supabase
-      .from("users")
-      .insert({
-        username,
-        password,
-        role: "reseller",
-      })
-      .select()
-      .single();
+    const { data: user, error: userError } =
+      await supabase
+        .from("users")
+        .insert({
+          username,
+          password,
+          role: "reseller",
+        })
+        .select()
+        .single();
+
+    console.log("USER:");
+    console.log(user);
+
+    console.log("USER ERROR:");
+    console.log(userError);
 
     if (userError) throw userError;
 
-    // Crear perfil de revendedor
+    // Crear revendedor
     const { data: reseller, error: resellerError } =
       await supabase
         .from("resellers")
@@ -62,7 +76,15 @@ router.post("/create", async (req, res) => {
         .select()
         .single();
 
+    console.log("RESELLER:");
+    console.log(reseller);
+
+    console.log("RESELLER ERROR:");
+    console.log(resellerError);
+
     if (resellerError) throw resellerError;
+
+    console.log("========== OK ==========");
 
     return res.json({
       success: true,
@@ -71,11 +93,13 @@ router.post("/create", async (req, res) => {
     });
 
   } catch (e) {
+    console.error("========== ERROR ==========");
     console.error(e);
 
     return res.status(500).json({
       success: false,
       message: e.message,
+      error: e,
     });
   }
 });
@@ -97,6 +121,10 @@ router.get("/all", async (req, res) => {
         ascending: false,
       });
 
+    console.log("GET RESELLERS");
+    console.log(data);
+    console.log(error);
+
     if (error) throw error;
 
     return res.json({
@@ -105,11 +133,13 @@ router.get("/all", async (req, res) => {
     });
 
   } catch (e) {
+    console.error("GET RESELLERS ERROR");
     console.error(e);
 
     return res.status(500).json({
       success: false,
       message: e.message,
+      error: e,
     });
   }
 });
