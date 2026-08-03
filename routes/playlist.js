@@ -12,8 +12,6 @@ router.post("/save", async (req, res) => {
 
     console.log("💾 SAVE PLAYLIST");
     console.log(deviceCode);
-    console.log(name);
-    console.log(url);
 
     if (!deviceCode || !name || !url) {
       return res.status(400).json({
@@ -80,7 +78,6 @@ router.get("/:deviceCode", async (req, res) => {
   try {
     const { deviceCode } = req.params;
 
-    // Comprobar licencia
     const { data: device, error: deviceError } = await supabase
       .from("devices")
       .select("subscription_end")
@@ -107,7 +104,6 @@ router.get("/:deviceCode", async (req, res) => {
       });
     }
 
-    // Obtener playlist
     const { data, error } = await supabase
       .from("playlists")
       .select("*")
@@ -115,13 +111,6 @@ router.get("/:deviceCode", async (req, res) => {
       .maybeSingle();
 
     if (error) throw error;
-
-    if (!data) {
-      return res.json({
-        success: true,
-        playlist: null,
-      });
-    }
 
     return res.json({
       success: true,
