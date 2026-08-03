@@ -191,12 +191,29 @@ router.get("/subscription/:deviceCode", async (req, res) => {
 // =========================
 router.post("/activate", async (req, res) => {
   try {
-    const { deviceCode } = req.body;
+    const { deviceCode, resellerId } = req.body;
 
-    if (!deviceCode) {
+    if (!deviceCode || !resellerId) {
       return res.status(400).json({
         success: false,
-        message: "Falta el código del dispositivo",
+        message: "Faltan datos",
+      });
+    }
+
+    // Buscar revendedor
+    const { data: reseller, error: resellerError } =
+      await supabase
+        .from("resellers")
+        .select("credits")
+        .eq("id", resellerId)
+        .single();
+
+    if (resellerError) throw resellerError;
+
+    if (Number(reseller.credits) <= 0) {
+      return res.json({
+        success: false,
+        message: "No tienes créditos disponibles",
       });
     }
 
@@ -205,23 +222,37 @@ router.post("/activate", async (req, res) => {
     const end = new Date(now);
     end.setFullYear(end.getFullYear() + 1);
 
-    const { data, error } = await supabase
-      .from("devices")
-      .update({
-        subscription_type: "yearly",
-        subscription_start: now.toISOString(),
-        subscription_end: end.toISOString(),
-        last_seen: now.toISOString(),
-      })
-      .eq("device_code", deviceCode)
-      .select()
-      .single();
+    // Activar dispositivo
+    const { data: device, error: deviceError } =
+      await supabase
+        .from("devices")
+        .update({
+          reseller_id: resellerId,
+          subscription_type: "yearly",
+          subscription_start: now.toISOString(),
+          subscription_end: end.toISOString(),
+          last_seen: now.toISOString(),
+        })
+        .eq("device_code", deviceCode)
+        .select()
+        .single();
 
-    if (error) throw error;
+    if (deviceError) throw deviceError;
+
+    // Restar un crédito
+    const { error: creditError } =
+      await supabase
+        .from("resellers")
+        .update({
+          credits: Number(reseller.credits) - 1,
+        })
+        .eq("id", resellerId);
+
+    if (creditError) throw creditError;
 
     return res.json({
       success: true,
-      device: data,
+      device,
     });
 
   } catch (e) {
